@@ -3,6 +3,7 @@ package com.shwaeki.heseim;
 import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Intent;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -16,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class LocationService extends Service {
-
+    LocationManager locationManager;
     @SuppressLint("MissingPermission")
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -52,11 +53,8 @@ public class LocationService extends Service {
             public void onProviderDisabled(String s) {
             }
         };
-        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10000, 0, locationListener);
-        boolean isGPS = locationManager.isProviderEnabled (LocationManager.GPS_PROVIDER);
-
-        Log.i("TEST","isGPS " + isGPS);
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        locationManager.requestLocationUpdates(getBestProvider(), 10000, 0, locationListener);
         return super.onStartCommand(intent, flags, startId);
 
     }
@@ -72,4 +70,16 @@ public class LocationService extends Service {
         Log.i("TEST", "App Is Closed");
         stopSelf();
     }
+
+    private String getBestProvider() {
+        Criteria criteria = new Criteria();
+        criteria.setPowerRequirement(Criteria.POWER_LOW);
+        criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+        criteria.setSpeedRequired(false);
+        criteria.setAltitudeRequired(false);
+        criteria.setBearingRequired(false);
+        criteria.setCostAllowed(false);
+        return this.locationManager.getBestProvider(criteria, true);
+    }
+
 }

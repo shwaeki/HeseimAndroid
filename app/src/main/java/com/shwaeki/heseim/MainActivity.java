@@ -8,7 +8,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
@@ -36,9 +38,9 @@ public class MainActivity extends AppCompatActivity {
             double latitude = Double.parseDouble(intent.getStringExtra("latutide"));
             double longitude = Double.parseDouble(intent.getStringExtra("longitude"));
             String str = latitude + "," + longitude;
-            Log.d("TEST", "Msg = "+str);
-            MainActivity.this.callJsWebView("javascript:getLocationJS('" + str + "');");
-            MainActivity.this.callJsWebView("javascript:clearGPSStatus();");
+            Log.d("TEST", "Msg = " + str);
+            callJsWebView("javascript:getLocationJS('" + str + "');");
+            callJsWebView("javascript:clearGPSStatus();");
         }
     };
 
@@ -64,20 +66,12 @@ public class MainActivity extends AppCompatActivity {
 
         //  myWebView.loadUrl("https://heseim.academia-jerusalem.com/");
         myWebView.loadUrl("file:///android_asset/heseim/index.html");
-        requestPermission();
-        Log.i("TEST", "App 1");
+        if (checkPermission()) {
+            runLocationService();
+        } else {
+            requestPermission();
+        }
 
-
-        Thread thread = new Thread() {
-            @Override
-            public void run() {
-                startService(new Intent(getApplicationContext(), LocationService.class));
-                Log.i("TEST", "App 2");
-
-            }
-        };
-        thread.start();
-        Log.i("TEST", "App 3");
 
     }
 
@@ -86,24 +80,20 @@ public class MainActivity extends AppCompatActivity {
     public void onResume() {
         super.onResume();
         registerReceiver(this.broadcastReceiver, new IntentFilter("LOCATION"));
-        MainActivity.this.callJsWebView("javascript:clearGPSStatus();");
+        callJsWebView("javascript:clearGPSStatus();");
     }
 
-    /* JADX INFO: Access modifiers changed from: protected */
-    @Override
 
+    @Override
     public void onPause() {
         super.onPause();
         unregisterReceiver(this.broadcastReceiver);
-        MainActivity.this.callJsWebView("javascript:clearGPSStatus();");
+        callJsWebView("javascript:clearGPSStatus();");
     }
 
 
-
-
     public void callJsWebView(final String str) {
-        Log.i("TEST", "callJsWebView "+str);
-
+        Log.i("TEST", "callJsWebView " + str);
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -126,12 +116,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    private void runLocationService() {
+
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                startService(new Intent(getApplicationContext(), LocationService.class));
+            }
+        };
+        thread.start();
+    }
+
+
     private boolean checkPermission() {
         int result = ContextCompat.checkSelfPermission(getApplicationContext(), ACCESS_FINE_LOCATION);
         int result1 = ContextCompat.checkSelfPermission(getApplicationContext(), ACCESS_COARSE_LOCATION);
-
         return result == PackageManager.PERMISSION_GRANTED && result1 == PackageManager.PERMISSION_GRANTED;
     }
+
 
     private void requestPermission() {
 
@@ -149,22 +151,16 @@ public class MainActivity extends AppCompatActivity {
                     boolean cameraAccepted = grantResults[1] == PackageManager.PERMISSION_GRANTED;
 
                     if (locationAccepted && cameraAccepted) {
+                        runLocationService();
                     } else {
-
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            if (shouldShowRequestPermissionRationale(ACCESS_FINE_LOCATION)) {
-                                showMessageOKCancel("You need to allow access to both the permissions",
-                                        new DialogInterface.OnClickListener() {
-                                            @Override
-                                            public void onClick(DialogInterface dialog, int which) {
-                                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                                    requestPermissions(new String[]{ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION},
-                                                            PERMISSION_REQUEST_CODE);
-                                                }
-                                            }
-                                        });
-                                return;
-                            }
+                        if (shouldShowRequestPermissionRationale(ACCESS_FINE_LOCATION)) {
+                            showMessageOKCancel("يجب عليك قبول صلاحيات استخدام الموقع للمتابعة",
+                                    (dialog, which) -> {
+                                        requestPermission();
+                                    });
+                            return;
+                        } else {
+                            showGPSAlert();
                         }
 
                     }
@@ -175,12 +171,30 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void showGPSAlert() {
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setMessage("تم تعطيل نظام تحديد المواقع (GPS) في جهازك. لا يمكن المتابعة دون تفعيله؟")
+                .setCancelable(false)
+                .setPositiveButton("انتقل إلى الإعدادات لتفعيل GPS",
+                        (dialog, id) -> {
+                            Intent myAppSettings = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName()));
+                            myAppSettings.addCategory(Intent.CATEGORY_DEFAULT);
+                            myAppSettings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(myAppSettings);
+                        });
+        alertDialogBuilder.setNegativeButton("اغلاق", (dialog, id) -> {
+            dialog.cancel();
+            finish();
+        });
+        AlertDialog alert = alertDialogBuilder.create();
+        alert.show();
+    }
 
     private void showMessageOKCancel(String message, DialogInterface.OnClickListener okListener) {
         new AlertDialog.Builder(MainActivity.this)
                 .setMessage(message)
-                .setPositiveButton("OK", okListener)
-                .setNegativeButton("Cancel", null)
+                .setPositiveButton("قبول", okListener)
+                .setNegativeButton("اغلاق", null)
                 .create()
                 .show();
     }
