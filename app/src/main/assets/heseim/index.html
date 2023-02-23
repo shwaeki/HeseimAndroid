@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>MgarAccompanies</title>
+	<style>
+	*{
+	    font-family: 'Tajawal', sans-serif !important;
+	}
+	</style>
+    <script>
+        document.write('<base href="' + document.location + '" />');
+    </script>
+    <script>
+        function getLocationJS(location) {
+            document.getElementById('locationFromAPK').value = location;
+            document.getElementById('locationFromAPKForReport').value = location;
+            console.log("Location Change "+ location);
+        }
+
+        function getLocationJSForTrackerTrip(location) {
+            document.getElementById('locationFromAPKForTrackerTrip').value = location;
+        }
+
+        function getSmsCodeFromAPK(sms) {
+            // alert(sms);
+            let code = sms.split('*')[1];
+            //alert(code);
+            document.getElementById('smsFromApk').value = code;
+            // alert(document.getElementById('smsFromApk').value);
+        }
+
+        function getPushToken(token) {
+            document.getElementById('pushTokenFromApk').value = token;
+        }
+
+
+        function getFireBaseToken(fireBaseToken) {
+            //alert(fireBaseToken);
+            document.getElementById('FireBaseToken').value = fireBaseToken;
+        }
+
+        function getIsUpdateFireBase() {
+            document.getElementById('IsUpdateFireBase').value = "y";
+        }
+
+        function clearGPSStatus() {
+            document.getElementById('appInForeground').value = "true";
+        }
+        
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name=”apple-mobile-web-app-capable” content=”yes”>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <app-root></app-root>
+<script type="text/javascript" src="runtime.js"></script>
+<script type="text/javascript" src="es2015-polyfills.js" nomodule></script>
+<script type="text/javascript" src="polyfills.js"></script>
+<script type="text/javascript" src="styles.js"></script>
+<script type="text/javascript" src="vendor.js"></script>
+<script type="text/javascript" src="main.js"></script>
+</body>
+
+</html>

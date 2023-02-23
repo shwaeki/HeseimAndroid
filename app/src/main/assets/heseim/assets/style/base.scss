@@ -1,0 +1,23 @@
+$main-blue : #2B59AC;
+$white : #FFFFFF;
+$gray : #757575;
+$black : rgba(0, 0, 0, 0.87);
+
+@mixin box-shadow-mixin ($top, $left, $blur, $color){
+    -webkit-box-shadow: $top $left $blur $color;
+    -moz-box-shadow:    $top $left $blur $color;
+    box-shadow:         $top $left $blur $color;
+}
+
+@mixin transform-mixin($property) {
+    -webkit-transform: $property;
+    -ms-transform: $property;
+    transform: $property;
+  }
+
+// EXTENDED CLASES
+
+%font{
+    font-family: Cairo;
+    font-style: normal;
+}
