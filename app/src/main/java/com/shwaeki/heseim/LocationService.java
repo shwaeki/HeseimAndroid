@@ -7,21 +7,17 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.location.LocationProvider;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class LocationService extends Service {
     LocationManager locationManager;
+
     @SuppressLint("MissingPermission")
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i("TEST", "Servics Start");
+        Log.i("TEST", "Services Start");
 
 
         LocationListener locationListener = new LocationListener() {
@@ -30,19 +26,16 @@ public class LocationService extends Service {
                 Log.i("TEST", "Start Location Listener");
                 double latitude = location.getLatitude();
                 double longitude = location.getLongitude();
-                Map<String, String> map = new HashMap<>();
-
                 Intent intent = new Intent("LOCATION");
                 intent.setPackage(getPackageName());
                 intent.putExtra("longitude", String.valueOf(longitude));
-                intent.putExtra("latutide", String.valueOf(latitude));
+                intent.putExtra("latitude", String.valueOf(latitude));
                 getApplicationContext().sendBroadcast(intent);
                 Log.i("TEST", "latitude: " + latitude + ", longitude:" + longitude);
             }
 
             @Override
             public void onStatusChanged(String s, int i, Bundle bundle) {
-                Log.i("TEST","onStatusChanged " + s);
             }
 
             @Override
@@ -54,7 +47,7 @@ public class LocationService extends Service {
             }
         };
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        locationManager.requestLocationUpdates(getBestProvider(), 10000, 0, locationListener);
+        locationManager.requestLocationUpdates(getBestProvider(), 150000, 10, locationListener);
         return super.onStartCommand(intent, flags, startId);
 
     }

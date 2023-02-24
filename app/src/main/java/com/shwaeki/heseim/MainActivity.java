@@ -1,6 +1,6 @@
 package com.shwaeki.heseim;
 
-import android.Manifest;
+
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -9,7 +9,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Build;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -17,12 +16,9 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.webkit.GeolocationPermissions;
 import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.widget.Toast;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
@@ -35,12 +31,12 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            double latitude = Double.parseDouble(intent.getStringExtra("latutide"));
+            double latitude = Double.parseDouble(intent.getStringExtra("latitude"));
             double longitude = Double.parseDouble(intent.getStringExtra("longitude"));
             String str = latitude + "," + longitude;
-            Log.d("TEST", "Msg = " + str);
+         //   Log.d("TEST", "Msg = " + str);
             callJsWebView("javascript:getLocationJS('" + str + "');");
-            callJsWebView("javascript:clearGPSStatus();");
+          //  callJsWebView("javascript:clearGPSStatus();");
         }
     };
 
@@ -66,8 +62,9 @@ public class MainActivity extends AppCompatActivity {
 
         //  myWebView.loadUrl("https://heseim.academia-jerusalem.com/");
         myWebView.loadUrl("file:///android_asset/heseim/index.html");
+
         if (checkPermission()) {
-            runLocationService();
+           runLocationService();
         } else {
             requestPermission();
         }
@@ -79,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
+        Log.i("TEST", "onResume");
         registerReceiver(this.broadcastReceiver, new IntentFilter("LOCATION"));
         callJsWebView("javascript:clearGPSStatus();");
     }
@@ -87,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onPause() {
         super.onPause();
+        Log.i("TEST", "onPause");
         unregisterReceiver(this.broadcastReceiver);
         callJsWebView("javascript:clearGPSStatus();");
     }
@@ -142,32 +141,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case PERMISSION_REQUEST_CODE:
-                if (grantResults.length > 0) {
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0) {
 
-                    boolean locationAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
-                    boolean cameraAccepted = grantResults[1] == PackageManager.PERMISSION_GRANTED;
+                boolean locationAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                boolean cameraAccepted = grantResults[1] == PackageManager.PERMISSION_GRANTED;
 
-                    if (locationAccepted && cameraAccepted) {
-                        runLocationService();
+                if (locationAccepted && cameraAccepted) {
+                    runLocationService();
+                } else {
+                    if (shouldShowRequestPermissionRationale(ACCESS_FINE_LOCATION)) {
+                        showMessageOKCancel((dialog, which) -> requestPermission());
                     } else {
-                        if (shouldShowRequestPermissionRationale(ACCESS_FINE_LOCATION)) {
-                            showMessageOKCancel("يجب عليك قبول صلاحيات استخدام الموقع للمتابعة",
-                                    (dialog, which) -> {
-                                        requestPermission();
-                                    });
-                            return;
-                        } else {
-                            showGPSAlert();
-                        }
-
+                        showGPSAlert();
                     }
+
                 }
-
-
-                break;
+            }
         }
     }
 
@@ -190,9 +181,9 @@ public class MainActivity extends AppCompatActivity {
         alert.show();
     }
 
-    private void showMessageOKCancel(String message, DialogInterface.OnClickListener okListener) {
+    private void showMessageOKCancel(DialogInterface.OnClickListener okListener) {
         new AlertDialog.Builder(MainActivity.this)
-                .setMessage(message)
+                .setMessage("يجب عليك قبول صلاحيات استخدام الموقع للمتابعة")
                 .setPositiveButton("قبول", okListener)
                 .setNegativeButton("اغلاق", null)
                 .create()
