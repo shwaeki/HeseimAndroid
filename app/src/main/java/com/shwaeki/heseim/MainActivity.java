@@ -2,6 +2,7 @@ package com.shwaeki.heseim;
 
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -16,17 +17,24 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
+
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 200;
     WebView myWebView;
+    Thread thread = null;
+    private ValueCallback<Uri[]> mFilePathCallback;
 
     private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -34,9 +42,8 @@ public class MainActivity extends AppCompatActivity {
             double latitude = Double.parseDouble(intent.getStringExtra("latitude"));
             double longitude = Double.parseDouble(intent.getStringExtra("longitude"));
             String str = latitude + "," + longitude;
-         //   Log.d("TEST", "Msg = " + str);
+            //   Log.d("TEST", "Msg = " + str);
             callJsWebView("javascript:getLocationJS('" + str + "');");
-          //  callJsWebView("javascript:clearGPSStatus();");
         }
     };
 
@@ -53,25 +60,72 @@ public class MainActivity extends AppCompatActivity {
         myWebView.getSettings().setAppCacheEnabled(true);
         myWebView.getSettings().setAllowFileAccess(true);
         myWebView.getSettings().setGeolocationEnabled(true);
+        myWebView.getSettings().setUseWideViewPort(true);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(myWebView, true);
         myWebView.getSettings().setGeolocationDatabasePath(getFilesDir().getPath());
+
+        myWebView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(myWebView, url);
+                if (checkPermission()) {
+                    runLocationService();
+                } else {
+                    requestPermission();
+                }
+
+            }
+        });
         myWebView.setWebChromeClient(new WebChromeClient() {
             public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
                 callback.invoke(origin, true, false);
+            }
+
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> filePath, WebChromeClient.FileChooserParams fileChooserParams) {
+                if (mFilePathCallback != null) {
+                    mFilePathCallback.onReceiveValue(null);
+                }
+                mFilePathCallback = filePath;
+
+                Intent contentSelectionIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                contentSelectionIntent.addCategory(Intent.CATEGORY_OPENABLE);
+                contentSelectionIntent.setType("image/*");
+
+                Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
+                chooserIntent.putExtra(Intent.EXTRA_INTENT, contentSelectionIntent);
+                chooserIntent.putExtra(Intent.EXTRA_TITLE, "Image Chooser");
+                chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, contentSelectionIntent);
+                startActivityForResult(chooserIntent, 1332);
+                return true;
             }
         });
 
         //  myWebView.loadUrl("https://heseim.academia-jerusalem.com/");
         myWebView.loadUrl("file:///android_asset/heseim/index.html");
 
-        if (checkPermission()) {
-           runLocationService();
-        } else {
-            requestPermission();
-        }
-
-
     }
 
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode != 1332 || mFilePathCallback == null) {
+            super.onActivityResult(requestCode, resultCode, data);
+            return;
+        }
+
+        Uri[] results = null;
+        if (resultCode == Activity.RESULT_OK) {
+            if (data != null) {
+                String dataString = data.getDataString();
+                if (dataString != null) {
+                    results = new Uri[]{Uri.parse(dataString)};
+                }
+            }
+        }
+        mFilePathCallback.onReceiveValue(results);
+        mFilePathCallback = null;
+    }
 
     @Override
     public void onResume() {
@@ -90,6 +144,14 @@ public class MainActivity extends AppCompatActivity {
         callJsWebView("javascript:clearGPSStatus();");
     }
 
+    @Override
+    public void onBackPressed() {
+        if (this.myWebView.canGoBack()) {
+            myWebView.goBack();
+        } else {
+            finish();
+        }
+    }
 
     public void callJsWebView(final String str) {
         Log.i("TEST", "callJsWebView " + str);
@@ -116,14 +178,17 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void runLocationService() {
-
-        Thread thread = new Thread() {
-            @Override
-            public void run() {
-                startService(new Intent(getApplicationContext(), LocationService.class));
-            }
-        };
-        thread.start();
+        findViewById(R.id.splash).setVisibility(View.GONE);
+        myWebView.setVisibility(View.VISIBLE);
+        if (thread == null) {
+            thread = new Thread() {
+                @Override
+                public void run() {
+                    startService(new Intent(getApplicationContext(), LocationService.class));
+                }
+            };
+            thread.start();
+        }
     }
 
 

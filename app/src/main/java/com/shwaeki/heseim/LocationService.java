@@ -47,7 +47,7 @@ public class LocationService extends Service {
             }
         };
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        locationManager.requestLocationUpdates(getBestProvider(), 150000, 10, locationListener);
+        locationManager.requestLocationUpdates(getBestProvider(), 150000, 0, locationListener);
         return super.onStartCommand(intent, flags, startId);
 
     }
@@ -67,7 +67,7 @@ public class LocationService extends Service {
     private String getBestProvider() {
         Criteria criteria = new Criteria();
         criteria.setPowerRequirement(Criteria.POWER_LOW);
-        criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+        criteria.setAccuracy(Criteria.ACCURACY_COARSE); //ACCURACY_FINE
         criteria.setSpeedRequired(false);
         criteria.setAltitudeRequired(false);
         criteria.setBearingRequired(false);
