@@ -9,6 +9,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
@@ -22,8 +23,12 @@ import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
@@ -35,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
     WebView myWebView;
     Thread thread = null;
     private ValueCallback<Uri[]> mFilePathCallback;
+    Timer checkGPSTimer;
+    public static MainActivity instantForFindingWebView;
 
     private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -47,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +62,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         myWebView = findViewById(R.id.webview);
+
+        myWebView.addJavascriptInterface(new WebAppExecutor(), "NativeApp");
         myWebView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
         myWebView.getSettings().setJavaScriptEnabled(true);
         myWebView.getSettings().setDomStorageEnabled(true);
@@ -61,6 +71,10 @@ public class MainActivity extends AppCompatActivity {
         myWebView.getSettings().setAllowFileAccess(true);
         myWebView.getSettings().setGeolocationEnabled(true);
         myWebView.getSettings().setUseWideViewPort(true);
+        myWebView.getSettings().setAllowFileAccessFromFileURLs(true);
+        myWebView.getSettings().setAllowUniversalAccessFromFileURLs(true);
+        myWebView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
+
         CookieManager.getInstance().setAcceptThirdPartyCookies(myWebView, true);
         myWebView.getSettings().setGeolocationDatabasePath(getFilesDir().getPath());
 
@@ -69,12 +83,33 @@ public class MainActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(myWebView, url);
                 if (checkPermission()) {
-                    runLocationService();
+                    LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+                    if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                        runLocationService();
+                    } else {
+                        showGPSDisabledAlertToUser();
+                    }
                 } else {
                     requestPermission();
                 }
 
             }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView webView, String str) {
+
+                if (str.startsWith("tel:")) {
+                    startActivity(new Intent("android.intent.action.DIAL", Uri.parse(str)));
+                    return true;
+                } else if (str.startsWith("http:") || str.startsWith("https:")) {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(str)));
+                    return true;
+                } else {
+                    webView.loadUrl(str);
+                    return true;
+                }
+            }
+
         });
         myWebView.setWebChromeClient(new WebChromeClient() {
             public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
@@ -104,8 +139,12 @@ public class MainActivity extends AppCompatActivity {
         //  myWebView.loadUrl("https://heseim.academia-jerusalem.com/");
         myWebView.loadUrl("file:///android_asset/heseim/index.html");
 
+        instantForFindingWebView = this;
     }
 
+    public static MainActivity getInstace() {
+        return instantForFindingWebView;
+    }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -133,6 +172,7 @@ public class MainActivity extends AppCompatActivity {
         Log.i("TEST", "onResume");
         registerReceiver(this.broadcastReceiver, new IntentFilter("LOCATION"));
         callJsWebView("javascript:clearGPSStatus();");
+        startCheckGPSTimer();
     }
 
 
@@ -142,6 +182,10 @@ public class MainActivity extends AppCompatActivity {
         Log.i("TEST", "onPause");
         unregisterReceiver(this.broadcastReceiver);
         callJsWebView("javascript:clearGPSStatus();");
+        if (checkGPSTimer != null) {
+            checkGPSTimer.cancel();
+            checkGPSTimer = null;
+        }
     }
 
     @Override
@@ -176,6 +220,24 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+
+    private void startCheckGPSTimer() {
+        if (checkGPSTimer != null) {
+            checkGPSTimer.cancel();
+            checkGPSTimer = null;
+        }
+        checkGPSTimer = new Timer();
+        checkGPSTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                callJsWebView("javascript:clearGPSStatus();");
+                Log.i("Timer", "Timer run");
+
+            }
+
+        }, 0, 10000);
+
+    }
 
     private void runLocationService() {
         findViewById(R.id.splash).setVisibility(View.GONE);
@@ -219,7 +281,7 @@ public class MainActivity extends AppCompatActivity {
                     if (shouldShowRequestPermissionRationale(ACCESS_FINE_LOCATION)) {
                         showMessageOKCancel((dialog, which) -> requestPermission());
                     } else {
-                        showGPSAlert();
+                        showGPSAlertPermission();
                     }
 
                 }
@@ -227,7 +289,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void showGPSAlert() {
+    private void showGPSAlertPermission() {
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
         alertDialogBuilder.setMessage("تم تعطيل نظام تحديد المواقع (GPS) في جهازك. لا يمكن المتابعة دون تفعيله؟")
                 .setCancelable(false)
@@ -242,6 +304,25 @@ public class MainActivity extends AppCompatActivity {
             dialog.cancel();
             finish();
         });
+        AlertDialog alert = alertDialogBuilder.create();
+        alert.show();
+    }
+
+    private void showGPSDisabledAlertToUser() {
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setMessage("لا يمكن استخدام التطبيق دون تفعيل GPS")
+                .setCancelable(false)
+                .setPositiveButton("انتقل إلى الإعدادات لتفعيل GPS",
+                        (dialog, id) -> {
+                            Intent callGPSSettingIntent = new Intent(
+                                    Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                            startActivity(callGPSSettingIntent);
+                        });
+        alertDialogBuilder.setNegativeButton("اغلاق",
+                (dialog, id) -> {
+                    dialog.cancel();
+                    finish();
+                });
         AlertDialog alert = alertDialogBuilder.create();
         alert.show();
     }
