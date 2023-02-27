@@ -214,10 +214,11 @@
                 });
                 this.appStatusInterval = this.appStatus.subscribe(function (x) {
                     var appStatusValue = document.getElementById('appInForeground');
-                    if (appStatusValue.value == 'true') {
+                 //   if (appStatusValue.value == 'true') {
                         _this.accompSvc.resetGPSCounter();
-                        document.getElementById('appInForeground').value = "123";
-                    }
+                       // document.getElementById('appInForeground').value = "123";
+                        document.getElementById('appInForeground').value = "true";
+                  //  }
                 });
             }
             ;
@@ -3209,6 +3210,7 @@
                 }
             };
             MyTripsComponent.prototype.continueReport = function (item) {
+                NativeApp.WriteToAnalyticsOnStartRide();
                 this.accompSvc.startTrackingTrip(item.ID); //start send location reports
                 /*
         אין צורך לשמור אוביקט כי לא בוצעה שום פעולה  בاستمرار נסיעה

@@ -3,6 +3,7 @@ package com.shwaeki.heseim;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -85,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 if (checkPermission()) {
                     LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
                     if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                        runLocationService();
+                        hideSplashScreen();
                     } else {
                         showGPSDisabledAlertToUser();
                     }
@@ -172,7 +173,6 @@ public class MainActivity extends AppCompatActivity {
         Log.i("TEST", "onResume");
         registerReceiver(this.broadcastReceiver, new IntentFilter("LOCATION"));
         callJsWebView("javascript:clearGPSStatus();");
-        startCheckGPSTimer();
     }
 
 
@@ -198,7 +198,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void callJsWebView(final String str) {
-        Log.i("TEST", "callJsWebView " + str);
+      //  Log.i("TEST", str);
+
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -221,38 +222,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void startCheckGPSTimer() {
-        if (checkGPSTimer != null) {
-            checkGPSTimer.cancel();
-            checkGPSTimer = null;
-        }
-        checkGPSTimer = new Timer();
-        checkGPSTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                callJsWebView("javascript:clearGPSStatus();");
-                Log.i("Timer", "Timer run");
-
-            }
-
-        }, 0, 10000);
-
-    }
-
-    private void runLocationService() {
+    private void hideSplashScreen() {
         findViewById(R.id.splash).setVisibility(View.GONE);
         myWebView.setVisibility(View.VISIBLE);
-        if (thread == null) {
-            thread = new Thread() {
-                @Override
-                public void run() {
-                    startService(new Intent(getApplicationContext(), LocationService.class));
-                }
-            };
-            thread.start();
+
+
+    }
+
+
+    public void startLocationService() {
+        if (!isMyServiceRunning(LocationService.class)) {
+            startService(new Intent(getApplicationContext(), LocationService.class));
+        }
+
+    }
+
+    public void stopLocationService() {
+        if (isMyServiceRunning(LocationService.class)) {
+            stopService(new Intent(getApplicationContext(), LocationService.class));
         }
     }
 
+
+    private boolean isMyServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private boolean checkPermission() {
         int result = ContextCompat.checkSelfPermission(getApplicationContext(), ACCESS_FINE_LOCATION);
@@ -262,9 +262,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void requestPermission() {
-
         ActivityCompat.requestPermissions(this, new String[]{ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION}, PERMISSION_REQUEST_CODE);
-
     }
 
     @Override
@@ -276,7 +274,7 @@ public class MainActivity extends AppCompatActivity {
                 boolean cameraAccepted = grantResults[1] == PackageManager.PERMISSION_GRANTED;
 
                 if (locationAccepted && cameraAccepted) {
-                    runLocationService();
+                    hideSplashScreen();
                 } else {
                     if (shouldShowRequestPermissionRationale(ACCESS_FINE_LOCATION)) {
                         showMessageOKCancel((dialog, which) -> requestPermission());

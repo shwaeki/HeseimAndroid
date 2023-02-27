@@ -26,14 +26,14 @@ public class WebAppExecutor {
 
     @JavascriptInterface
     public void WriteToAnalyticsOnStartRide() {
-        Log.i("TEST","WriteToAnalyticsOnStartRide");
-      //  MainActivity.getInstace().WriteToAnalyticsOnStartRide();
+        Log.i("TEST","startLocationService");
+        MainActivity.getInstace().startLocationService();
     }
 
     @JavascriptInterface
     public void WriteToAnalyticsOnCloseRide() {
-        Log.i("TEST","WriteToAnalyticsOnCloseRide");
-      //  MainActivity.getInstace().WriteToAnalyticsOnCloseRide();
+        Log.i("TEST","stopLocationService");
+        MainActivity.getInstace().stopLocationService();
     }
 
 

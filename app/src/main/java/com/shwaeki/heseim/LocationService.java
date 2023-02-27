@@ -13,6 +13,7 @@ import android.util.Log;
 
 public class LocationService extends Service {
     LocationManager locationManager;
+    LocationListener locationListener;
 
     @SuppressLint("MissingPermission")
     @Override
@@ -20,10 +21,9 @@ public class LocationService extends Service {
         Log.i("TEST", "Services Start");
 
 
-        LocationListener locationListener = new LocationListener() {
+        locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
-                Log.i("TEST", "Start Location Listener");
                 double latitude = location.getLatitude();
                 double longitude = location.getLongitude();
                 Intent intent = new Intent("LOCATION");
@@ -47,7 +47,9 @@ public class LocationService extends Service {
             }
         };
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        locationManager.requestLocationUpdates(getBestProvider(), 150000, 0, locationListener);
+      //  locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10000, 0, locationListener);
+        locationManager.requestLocationUpdates(getBestProvider(), 10000, 0, locationListener);
+
         return super.onStartCommand(intent, flags, startId);
 
     }
@@ -63,7 +65,12 @@ public class LocationService extends Service {
         Log.i("TEST", "App Is Closed");
         stopSelf();
     }
+    @Override
+    public void onDestroy() {
+        Log.i("TEST", "onDestroy");
+        locationManager.removeUpdates(locationListener);
 
+    }
     private String getBestProvider() {
         Criteria criteria = new Criteria();
         criteria.setPowerRequirement(Criteria.POWER_LOW);
