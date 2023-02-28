@@ -4,6 +4,7 @@ package com.shwaeki.heseim;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -13,10 +14,6 @@ import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.provider.Settings;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -28,8 +25,11 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 import java.util.Timer;
-import java.util.TimerTask;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
@@ -39,11 +39,10 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 200;
     WebView myWebView;
-    Thread thread = null;
     private ValueCallback<Uri[]> mFilePathCallback;
-    Timer checkGPSTimer;
     public static MainActivity instantForFindingWebView;
 
+    private boolean isTripStarted = false;
     private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -173,6 +172,9 @@ public class MainActivity extends AppCompatActivity {
         Log.i("TEST", "onResume");
         registerReceiver(this.broadcastReceiver, new IntentFilter("LOCATION"));
         callJsWebView("javascript:clearGPSStatus();");
+        if (isTripStarted){
+            startLocationService();
+        }
     }
 
 
@@ -182,10 +184,6 @@ public class MainActivity extends AppCompatActivity {
         Log.i("TEST", "onPause");
         unregisterReceiver(this.broadcastReceiver);
         callJsWebView("javascript:clearGPSStatus();");
-        if (checkGPSTimer != null) {
-            checkGPSTimer.cancel();
-            checkGPSTimer = null;
-        }
     }
 
     @Override
@@ -234,13 +232,14 @@ public class MainActivity extends AppCompatActivity {
         if (!isMyServiceRunning(LocationService.class)) {
             startService(new Intent(getApplicationContext(), LocationService.class));
         }
-
+        isTripStarted = true;
     }
 
     public void stopLocationService() {
         if (isMyServiceRunning(LocationService.class)) {
             stopService(new Intent(getApplicationContext(), LocationService.class));
         }
+        isTripStarted = false;
     }
 
 
