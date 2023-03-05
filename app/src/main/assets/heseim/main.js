@@ -874,13 +874,13 @@
                                 _this.loading = false;
                             } else {
                                 _this.loading = true;
+
                                 return _this.accompSvc.getStudentsForSearch(value);
                             }
                         }
                     }
                 }))
                     .subscribe(function (res) {
-                        // console.log(res);
                         // this.accompSvc.closeNoInternetAlert();
                         _this.studentList = [];
                         _this.fullNameEqual = [];
@@ -892,6 +892,10 @@
                         if (res != null) {
                             _this.studentListTemp = res;
                             _this.studentListTemp.forEach(function (item, index) {
+                                var name = JSON.parse(JSON.stringify(item)).fullName;
+                                if(name == "00 ללא רשימה"){
+                                    item.fullName = "نقلة غير مسجلة";
+                                }
                                 if (item.fullName == _this.searchStudentField) {
                                     _this.fullNameEqual.push(item);
                                 } else if (item.firstName.startsWith(_this.searchStudentField)) {
@@ -905,7 +909,9 @@
                                 } else {
                                     _this.fullNameInclude.push(item);
                                 }
+                               //  console.log(JSON.parse(JSON.stringify(item)).fullName);
                             });
+                            // console.log(_this.fullNameEqual.concat(_this.firstNameStart).concat(_this.lastNameStart).concat(_this.firstNameInclude).concat(_this.lastNameInclude).concat(_this.fullNameInclude));
                             _this.studentList = _this.fullNameEqual.concat(_this.firstNameStart).concat(_this.lastNameStart).concat(_this.firstNameInclude).concat(_this.lastNameInclude).concat(_this.fullNameInclude);
                         }
                         _this.loading = false;

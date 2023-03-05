@@ -171,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         Log.i("TEST", "onResume");
         registerReceiver(this.broadcastReceiver, new IntentFilter("LOCATION"));
-        callJsWebView("javascript:clearGPSStatus();");
+      //  callJsWebView("javascript:clearGPSStatus();");
         if (isTripStarted){
             startLocationService();
         }
@@ -183,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         Log.i("TEST", "onPause");
         unregisterReceiver(this.broadcastReceiver);
-        callJsWebView("javascript:clearGPSStatus();");
+     //   callJsWebView("javascript:clearGPSStatus();");
     }
 
     @Override
