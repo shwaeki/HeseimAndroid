@@ -205,7 +205,7 @@
                         } else
                             _this.router.navigate(['']);
                     } else {
-                      //  _this.router.navigate(['message-page/updateVersion']);
+                        //  _this.router.navigate(['message-page/updateVersion']);
                         _this.router.navigate(['my-trips']);
                     }
                 }, function (err) {
@@ -214,11 +214,11 @@
                 });
                 this.appStatusInterval = this.appStatus.subscribe(function (x) {
                     var appStatusValue = document.getElementById('appInForeground');
-                 //   if (appStatusValue.value == 'true') {
-                        _this.accompSvc.resetGPSCounter();
-                       // document.getElementById('appInForeground').value = "123";
-                        document.getElementById('appInForeground').value = "true";
-                  //  }
+                    //   if (appStatusValue.value == 'true') {
+                    _this.accompSvc.resetGPSCounter();
+                    // document.getElementById('appInForeground').value = "123";
+                    document.getElementById('appInForeground').value = "true";
+                    //  }
                 });
             }
             ;
@@ -465,7 +465,7 @@
             };
             CarTypeComponent.prototype.radioChange = function (id, element) {
                 var _this = this;
-                if (document.getElementsByClassName("radioChecked").length > 0) { //אם כבר נבחר סוג רכב, 
+                if (document.getElementsByClassName("radioChecked").length > 0) { //אם כבר נבחר סוג רכב,
                     document.getElementsByClassName("radioChecked")[0].className =
                         document.getElementsByClassName("radioChecked")[0].className.replace("radioChecked", ""); //תוריד את העיצוב מהבחירה הקודמת
                 }
@@ -840,8 +840,48 @@
         /* harmony import */
         var src_app_services_accompenie_service__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! src/app/services/accompenie.service */ "./src/app/services/accompenie.service.ts");
 
+        /*
+                var ArabicNames = {
+                    'מוחמד': 'محمد',
+                    'מחמד': 'محمد',
+                };
+        */
+
+        var ArabicNames = {};
+
+        function readTextFile(file, callback) {
+            var rawFile = new XMLHttpRequest();
+            rawFile.overrideMimeType("application/json");
+            rawFile.open("GET", file, true);
+            rawFile.onreadystatechange = function () {
+                if (rawFile.readyState === 4 && rawFile.status == "200") {
+                    callback(rawFile.responseText);
+                }
+            }
+            rawFile.send(null);
+        }
+
+
+        readTextFile("https://shwaeki.com/data/", function (text) {
+            var studentData = JSON.stringify(JSON.parse(text));
+            ArabicNames = JSON.parse(studentData.replace(/\{\"value\"\:/g, "").replace(/\}\,\"number/g, ',"number').replace(/\"\}\}/g, '"}'));
+        });
+
+
+        function translateToArabic(txt) {
+            //  console.log(ArabicNames);
+            txt.split(" ").forEach(function (name) {
+                if (name && ArabicNames[name] && ArabicNames[name] !== undefined) {
+                    console.log(name + '  -  ' + ArabicNames[name]);
+                    txt = txt.replace(name, ArabicNames[name]);
+                }
+            });
+            return txt
+        }
 
         var SearchStudentAutocompleteComponent = /** @class */ (function () {
+
+
             function SearchStudentAutocompleteComponent(accompSvc) {
                 this.accompSvc = accompSvc;
                 this.autocompleteCtrl = new _angular_forms__WEBPACK_IMPORTED_MODULE_2__["FormControl"]();
@@ -866,7 +906,7 @@
             SearchStudentAutocompleteComponent.prototype.ngOnInit = function () {
                 var _this = this;
                 this.autocompleteCtrl.valueChanges.pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_3__["debounceTime"])(200), Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_3__["switchMap"])(function (value) {
-                    if (navigator.onLine) {
+                    if (navigator.onLine && value.length > 0) {
                         if (typeof value === 'string') {
                             _this.searchStudentField = value;
                             _this.studentList = [];
@@ -878,47 +918,54 @@
                                 return _this.accompSvc.getStudentsForSearch(value);
                             }
                         }
+
+
                     }
-                }))
-                    .subscribe(function (res) {
-                        // this.accompSvc.closeNoInternetAlert();
-                        _this.studentList = [];
-                        _this.fullNameEqual = [];
-                        _this.fullNameInclude = [];
-                        _this.firstNameStart = [];
-                        _this.lastNameStart = [];
-                        _this.firstNameInclude = [];
-                        _this.lastNameInclude = [];
-                        if (res != null) {
-                            _this.studentListTemp = res;
-                            _this.studentListTemp.forEach(function (item, index) {
-                                var name = JSON.parse(JSON.stringify(item)).fullName;
-                                if(name == "00 ללא רשימה"){
+                })).subscribe(function (res) {
+                    // this.accompSvc.closeNoInternetAlert();
+                    _this.studentList = [];
+                    _this.fullNameEqual = [];
+                    _this.fullNameInclude = [];
+                    _this.firstNameStart = [];
+                    _this.lastNameStart = [];
+                    _this.firstNameInclude = [];
+                    _this.lastNameInclude = [];
+
+                    if (res != null) {
+                        _this.studentListTemp = res;
+                        _this.studentListTemp.forEach(function (item, index) {
+                            var name = JSON.parse(JSON.stringify(item)).fullName;
+                            if (name != null) {
+                                if (name == "00 ללא רשימה") {
                                     item.fullName = "نقلة غير مسجلة";
-                                }
-                                if (item.fullName == _this.searchStudentField) {
-                                    _this.fullNameEqual.push(item);
-                                } else if (item.firstName.startsWith(_this.searchStudentField)) {
-                                    _this.firstNameStart.push(item);
-                                } else if (item.lastName.startsWith(_this.searchStudentField)) {
-                                    _this.lastNameStart.push(item);
-                                } else if (item.firstName.includes(_this.searchStudentField)) {
-                                    _this.firstNameInclude.push(item);
-                                } else if (item.lastName.includes(_this.searchStudentField)) {
-                                    _this.lastNameInclude.push(item);
                                 } else {
-                                    _this.fullNameInclude.push(item);
+                                    item.fullName = translateToArabic(name);
                                 }
-                               //  console.log(JSON.parse(JSON.stringify(item)).fullName);
-                            });
-                            // console.log(_this.fullNameEqual.concat(_this.firstNameStart).concat(_this.lastNameStart).concat(_this.firstNameInclude).concat(_this.lastNameInclude).concat(_this.fullNameInclude));
-                            _this.studentList = _this.fullNameEqual.concat(_this.firstNameStart).concat(_this.lastNameStart).concat(_this.firstNameInclude).concat(_this.lastNameInclude).concat(_this.fullNameInclude);
-                        }
-                        _this.loading = false;
-                    }, function (err) {
-                        _this.loading = false;
-                        // this.accompSvc.openNoInternetAlert();
-                    });
+                            }
+                            if (item.fullName == _this.searchStudentField) {
+                                _this.fullNameEqual.push(item);
+                            } else if (item.firstName.startsWith(_this.searchStudentField)) {
+                                _this.firstNameStart.push(item);
+                            } else if (item.lastName.startsWith(_this.searchStudentField)) {
+                                _this.lastNameStart.push(item);
+                            } else if (item.firstName.includes(_this.searchStudentField)) {
+                                _this.firstNameInclude.push(item);
+                            } else if (item.lastName.includes(_this.searchStudentField)) {
+                                _this.lastNameInclude.push(item);
+                            } else {
+                                _this.fullNameInclude.push(item);
+                            }
+                            //  console.log(JSON.parse(JSON.stringify(item)).fullName);
+                        });
+                        // console.log(_this.fullNameEqual.concat(_this.firstNameStart).concat(_this.lastNameStart).concat(_this.firstNameInclude).concat(_this.lastNameInclude).concat(_this.fullNameInclude));
+                        _this.studentList = _this.fullNameEqual.concat(_this.firstNameStart).concat(_this.lastNameStart).concat(_this.firstNameInclude).concat(_this.lastNameInclude).concat(_this.fullNameInclude);
+                    }
+                    _this.loading = false;
+
+                }, function (err) {
+                    _this.loading = false;
+                    // this.accompSvc.openNoInternetAlert();
+                });
             };
             SearchStudentAutocompleteComponent.prototype.getOptionText = function (option) {
                 if (option) {
@@ -2117,24 +2164,24 @@
                 this.reasonType = -1;
             }
 
-                 var eventTypeListArabic = {
-                    "הוספת ילד/ה לנסיעה": "اضافة طالب الى السفرية",
-                    "הסעה מאחרת"   : "تأخر في السفرية",
-                    "התנהגות שלילית של תלמיד/נהג"   : "سلوك الطالب / السائق السلبي",
-                    "מסלול ארוך"    : "المسار يأخذ الكثير من الوقت",
-                    "רכב לא תקין/לא בטיחותי"    : "مركبة غير جيدة / غير آمنة",
-                    "איחור מבוגר אחראי לקבלת התלמיד/מסירת התלמיד"    : "تأخر اهل الطالب في  استلام / توصيل الطالب",
-                    "אירוע חריג - אחר"   : "حدث غير عادي - آخر",
-                 };
+            var eventTypeListArabic = {
+                "הוספת ילד/ה לנסיעה": "اضافة طالب الى السفرية",
+                "הסעה מאחרת": "تأخر في السفرية",
+                "התנהגות שלילית של תלמיד/נהג": "سلوك الطالب / السائق السلبي",
+                "מסלול ארוך": "المسار يأخذ الكثير من الوقت",
+                "רכב לא תקין/לא בטיחותי": "مركبة غير جيدة / غير آمنة",
+                "איחור מבוגר אחראי לקבלת התלמיד/מסירת התלמיד": "تأخر اهل الطالب في  استلام / توصيل الطالب",
+                "אירוע חריג - אחר": "حدث غير عادي - آخر",
+            };
 
             Object.defineProperty(ExceptionalEventComponent.prototype, "options", {
                 get: function () {
-                     for( var key in this.accompSvc.accompenie.eventTypeList)  {
-                        if(eventTypeListArabic[this.accompSvc.accompenie.eventTypeList[key].text] != undefined){
-                              this.accompSvc.accompenie.eventTypeList[key].text = eventTypeListArabic[this.accompSvc.accompenie.eventTypeList[key].text];
+                    for (var key in this.accompSvc.accompenie.eventTypeList) {
+                        if (eventTypeListArabic[this.accompSvc.accompenie.eventTypeList[key].text] != undefined) {
+                            this.accompSvc.accompenie.eventTypeList[key].text = eventTypeListArabic[this.accompSvc.accompenie.eventTypeList[key].text];
                         }
-                     }
-                 //   console.log(this.accompSvc.accompenie.eventTypeList[0].text)
+                    }
+                    //   console.log(this.accompSvc.accompenie.eventTypeList[0].text)
                     return this.accompSvc.accompenie.eventTypeList;
                 },
                 enumerable: true,
@@ -2328,7 +2375,7 @@
                 this.router = router;
                 //online :string;
                 this.load = false;
-                this.step = 'log-in'; //'pass' 
+                this.step = 'log-in'; //'pass'
             }
 
             Object.defineProperty(LogInComponent.prototype, "user", {
@@ -2420,7 +2467,7 @@
                                 if (res.details == 'True') {
                                     _this.router.navigate(['my-trips']);
                                 } else {
-                              //      _this.router.navigate(['message-page/updateVersion']);
+                                    //      _this.router.navigate(['message-page/updateVersion']);
                                     _this.router.navigate(['my-trips']);
                                 }
                             }, function (err) {
@@ -2496,7 +2543,7 @@
                 } catch (error) {
                     //this.error = ("ERROR: " + error);
                     // setTimeout(() => {
-                    //    (<HTMLInputElement>document.getElementById('smsFromApk')).value = '123456'; 
+                    //    (<HTMLInputElement>document.getElementById('smsFromApk')).value = '123456';
                     //  }, 5000);
                 }*/
                 this.smsSubscription = this.smsInterval.subscribe(function (counter) {
@@ -2508,10 +2555,10 @@
                         _this.smsSubscription.unsubscribe();
                         _this.smsSubject.next(tempSms);
                     }
-                    //     if(counter >= 10){  
+                    //     if(counter >= 10){
                     //    this.smsSubscription.unsubscribe();
                     //    this.smsSubject.next(null);
-                    // }   
+                    // }
                 });
             };
             LogInService = tslib__WEBPACK_IMPORTED_MODULE_0__["__decorate"]([
@@ -2672,7 +2719,7 @@
                 Object(rxjs__WEBPACK_IMPORTED_MODULE_7__["interval"])(1000 * 1).subscribe(function (x) {
                     _this.offline = !navigator.onLine;
                     ;
-                  //  console.log(_this.offline);
+                    //  console.log(_this.offline);
                 });
                 this.accompSvc.setRequestsQueue();
                 /*schoolbus*/
@@ -2694,7 +2741,7 @@
                     _this.accompSvc.isSchoolbusTrip = _this.enableSchoolbus;
                     var schoolbusObj = JSON.parse(res);
                     // alert(schoolbusObj.attendantID + " , " + schoolbusObj.teamID + " , " + schoolbusObj.token);
-                  //  NativeApp.SaveSchoolbusDataInWebView(schoolbusObj.attendantID, schoolbusObj.teamID, schoolbusObj.token);
+                    //  NativeApp.SaveSchoolbusDataInWebView(schoolbusObj.attendantID, schoolbusObj.teamID, schoolbusObj.token);
                 }, function (err) {
                     alert("שגיאה מול סקולבס: " + err.error.ExceptionMessage);
                 });
@@ -2704,7 +2751,7 @@
             };
             MyTripComponent.prototype.openSchoolbusSite = function () {
                 localStorage.setItem("lastRideId", this.currentTrip.ID);
-             //   NativeApp.OpenSchoolbusSite();
+                //   NativeApp.OpenSchoolbusSite();
             };
             Object.defineProperty(MyTripComponent.prototype, "model", {
                 set: function (value) {
@@ -2715,20 +2762,20 @@
             });
 
             var notCollectedReasonListArabic = {
-                "התלמיד איחר והנהג המשיך בנסיעה"   : "تأخر الطالب واستمر السائق في القيادة",
-                "התלמיד לא מגיע ללימודים"   : "لا يأتي الطالب إلى المدرسة",
-                "התלמיד יגיע עצמאית למוסד"   : "سيأتي الطالب إلى المؤسسة بشكل مستقل",
-                "התלמיד לא נוסע במסלול"   : "الطالب لا ينتمي الى هذه السفرية",
-                "אחר – הקלדת טקסט חופשי"   : "سبب اخر",
+                "התלמיד איחר והנהג המשיך בנסיעה": "تأخر الطالب واستمر السائق في القيادة",
+                "התלמיד לא מגיע ללימודים": "لا يأتي الطالب إلى المدرسة",
+                "התלמיד יגיע עצמאית למוסד": "سيأتي الطالب إلى المؤسسة بشكل مستقل",
+                "התלמיד לא נוסע במסלול": "الطالب لا ينتمي الى هذه السفرية",
+                "אחר – הקלדת טקסט חופשי": "سبب اخر",
             };
 
             Object.defineProperty(MyTripComponent.prototype, "options", {
                 get: function () {
-                    for( var key in this.accompSvc.accompenie.notCollectedReasonList)  {
-                        if(notCollectedReasonListArabic[this.accompSvc.accompenie.notCollectedReasonList[key].text] != undefined){
-                              this.accompSvc.accompenie.notCollectedReasonList[key].text = notCollectedReasonListArabic[this.accompSvc.accompenie.notCollectedReasonList[key].text];
+                    for (var key in this.accompSvc.accompenie.notCollectedReasonList) {
+                        if (notCollectedReasonListArabic[this.accompSvc.accompenie.notCollectedReasonList[key].text] != undefined) {
+                            this.accompSvc.accompenie.notCollectedReasonList[key].text = notCollectedReasonListArabic[this.accompSvc.accompenie.notCollectedReasonList[key].text];
                         }
-                     }
+                    }
                     return this.accompSvc.accompenie.notCollectedReasonList;
                 },
                 enumerable: true,
@@ -3086,13 +3133,13 @@
                 }
                 this.subscribeTimer();
                 if (navigator.onLine) {
-                    // waiting for push token befour update model. after 5 seconds - update anyway 
+                    // waiting for push token befour update model. after 5 seconds - update anyway
                     this.accompSvc.setPushToken();
                     this.accompSvc.pushTokenSubject.pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_8__["first"])()).subscribe(function (res) {
                         _this.accompSvc.updateModelNoReturn(false);
                     });
                 }
-                //this.orderTripsDate();    
+                //this.orderTripsDate();
             };
             MyTripsComponent.prototype.RefreshData = function (showLoading) {
                 this.accompSvc.updateModelWithEmit(showLoading);
@@ -3601,7 +3648,7 @@
                 var _this = this;
                 if (!this.requestsQueueIntervalSubscribe || this.requestsQueueIntervalSubscribe.isStopped) {
                     this.requestsQueueIntervalSubscribe = this.requestsQueueInterval.subscribe(function (x) {
-                      //  console.log("requestsQueueInterval: " + x);
+                        //  console.log("requestsQueueInterval: " + x);
                         if (_this.enableToUseQueue && navigator.onLine && _this.requestsQueue && _this.requestsQueue.length > 0) {
                             _this.enableToUseQueue = false;
                             var item = _this.requestsQueue.shift();
@@ -3910,7 +3957,7 @@
             AccompanieService.prototype.updateAccopmpanyLocation = function () {
                 var Location = this.loc.getLocation(false);
                 this.SetGPSStatus(Location.currentLocation); //check every time if GPS is still ON
-                if (this.isGPSActive) { //GPS is ON 
+                if (this.isGPSActive) { //GPS is ON
                     document.getElementById('locationFromAPK').value = ""; //clean value
                     var rep = new _models_accompeanie__WEBPACK_IMPORTED_MODULE_3__["RideReport"]();
                     rep.rideId = this.currentRideID;
